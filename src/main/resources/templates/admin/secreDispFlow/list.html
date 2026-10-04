@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <th:block th:include="include :: header('载体处置流转台账')"/>
+</head>
+<body class="pear-container">
+<div class="layui-card">
+    <div class="layui-card-body">
+        <form class="layui-form" action="">
+            <div class="layui-form-item">
+                <label class="layui-form-label">载体件码</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="carrierNo" placeholder="" class="layui-input">
+                </div>
+
+                <label class="layui-form-label">名录代号</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="bookNo" placeholder="" class="layui-input">
+                </div>
+
+                <label class="layui-form-label">情形</label>
+                <div class="layui-input-inline">
+                    <select name="status">
+                        <option value=""></option>
+                        <option value="0">未起</option>
+                        <option value="1">在办</option>
+                        <option value="2">已封住</option>
+                        <option value="3">已叫停</option>
+                    </select>
+                </div>
+                <button class="pear-btn pear-btn-md pear-btn-primary" lay-submit lay-filter="secreDispFlow-query">
+                    <i class="layui-icon layui-icon-search"></i>
+                    查询
+                </button>
+                <button type="reset" class="pear-btn pear-btn-md">
+                    <i class="layui-icon layui-icon-refresh"></i>
+                    重置
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="layui-card">
+    <div class="layui-card-body">
+        <table id="secreDispFlow-table" lay-filter="secreDispFlow-table"></table>
+    </div>
+</div>
+</body>
+
+<script type="text/html" id="secreDispFlow-toolbar">
+    <button shiro:hasPermission="secreDispFlow:add" class="pear-btn pear-btn-primary pear-btn-md" lay-event="add">
+        <i class="layui-icon layui-icon-add-1"></i>
+        起单
+    </button>
+    <span class="layui-badge layui-bg-gray" id="unfinished-badge" style="margin-left:10px;">未走完 0 条</span>
+</script>
+
+<script type="text/html" id="secreDispFlow-bar">
+    <button class="pear-btn pear-btn-warming pear-btn-sm" lay-event="view" title="查看层叠"><i class="layui-icon layui-icon-template"></i>
+    </button>
+    {{# if(d.status == 0){ }}
+    <button shiro:hasPermission="secreDispFlow:advance" class="pear-btn pear-btn-primary pear-btn-sm" lay-event="advance" title="推进"><i class="layui-icon layui-icon-right"></i>
+    </button>
+    <button shiro:hasPermission="secreDispFlow:revoke" class="pear-btn pear-btn-danger pear-btn-sm" lay-event="revoke" title="撤销"><i class="layui-icon layui-icon-close"></i>
+    </button>
+    {{# } }}
+    {{# if(d.status == 1){ }}
+    <button shiro:hasPermission="secreDispFlow:advance" class="pear-btn pear-btn-primary pear-btn-sm" lay-event="advance" title="推进"><i class="layui-icon layui-icon-right"></i>
+    </button>
+    <button shiro:hasPermission="secreDispFlow:rollback" class="pear-btn pear-btn-primary pear-btn-sm" lay-event="rollback" title="回退"><i class="layui-icon layui-icon-left"></i>
+    </button>
+    <button shiro:hasPermission="secreDispFlow:record" class="pear-btn pear-btn-primary pear-btn-sm" lay-event="record" title="记按语"><i class="layui-icon layui-icon-edit"></i>
+    </button>
+    <button shiro:hasPermission="secreDispFlow:halt" class="pear-btn pear-btn-warming pear-btn-sm" lay-event="halt" title="叫停"><i class="layui-icon layui-icon-pause"></i>
+    </button>
+    <button shiro:hasPermission="secreDispFlow:seal" class="pear-btn pear-btn-primary pear-btn-sm" lay-event="seal" title="收尾"><i class="layui-icon layui-icon-ok"></i>
+    </button>
+    {{# if(d.stage == 3){ }}
+    <button shiro:hasPermission="secreDispFlow:annul" class="pear-btn pear-btn-danger pear-btn-sm" lay-event="annul" title="作废"><i class="layui-icon layui-icon-delete"></i>
+    </button>
+    {{# } }}
+    {{# } }}
+    {{# if(d.status == 3){ }}
+    <button shiro:hasPermission="secreDispFlow:seal" class="pear-btn pear-btn-primary pear-btn-sm" lay-event="seal" title="收尾"><i class="layui-icon layui-icon-ok"></i>
+    </button>
+    {{# } }}
+    {{# if(d.status != 2){ }}
+    <button shiro:hasPermission="secreDispFlow:remove" class="pear-btn pear-btn-danger pear-btn-sm" lay-event="remove" title="删除"><i class="layui-icon layui-icon-delete"></i>
+    </button>
+    {{# } }}
+</script>
+
+<script type="text/html" id="secreDispFlow-stage">
+    {{# if(d.stage == 0){ }}
+    <span class="layui-badge layui-bg-blue">核件</span>
+    {{# }else if(d.stage == 1){ }}
+    <span class="layui-badge layui-bg-cyan">定级</span>
+    {{# }else if(d.stage == 2){ }}
+    <span class="layui-badge layui-bg-orange">清退</span>
+    {{# }else{ }}
+    <span class="layui-badge layui-bg-red">监销</span>
+    {{# } }}
+</script>
+
+<script type="text/html" id="secreDispFlow-status">
+    {{# if(d.status == 0){ }}
+    <span class="layui-badge layui-bg-gray">未起</span>
+    {{# }else if(d.status == 1){ }}
+    <span class="layui-badge layui-bg-green">在办</span>
+    {{# }else if(d.status == 2){ }}
+    <span class="layui-badge layui-bg-black">已封住</span>
+    {{# }else{ }}
+    <span class="layui-badge layui-bg-orange">已叫停</span>
+    {{# } }}
+</script>
+
+<script type="text/html" id="secreDispFlow-add-form">
+    <div style="padding: 15px;">
+        <form class="layui-form" lay-filter="secreDispFlow-add-form">
+            <div class="layui-form-item">
+                <label class="layui-form-label">载体件码</label>
+                <div class="layui-input-block">
+                    <input type="text" name="carrierNo" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">名录代号</label>
+                <div class="layui-input-block">
+                    <input type="text" name="bookNo" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">件数</label>
+                <div class="layui-input-block">
+                    <input type="number" name="qty" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">拟密级</label>
+                <div class="layui-input-block">
+                    <input type="text" name="planLevel" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">备注</label>
+                <div class="layui-input-block">
+                    <input type="text" name="remark" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item" style="text-align:center;">
+                <button type="button" class="pear-btn pear-btn-primary" id="add-submit">起行</button>
+            </div>
+        </form>
+    </div>
+</script>
+
+<script type="text/html" id="secreDispFlow-advance-form">
+    <div style="padding: 15px;">
+        <form class="layui-form">
+            <div class="layui-form-item">
+                <label class="layui-form-label">按语</label>
+                <div class="layui-input-block">
+                    <input type="text" name="remark" class="layui-input">
+                </div>
+            </div>
+            {{# if(d.stage == 3){ }}
+            <div class="layui-form-item">
+                <label class="layui-form-label">见证岗一</label>
+                <div class="layui-input-block">
+                    <input type="text" name="witnessOne" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">见证岗二</label>
+                <div class="layui-input-block">
+                    <input type="text" name="witnessTwo" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">化浆凭证码</label>
+                <div class="layui-input-block">
+                    <input type="text" name="pulpNo" class="layui-input">
+                </div>
+            </div>
+            {{# } }}
+            <div class="layui-form-item" style="text-align:center;">
+                <button type="button" class="pear-btn pear-btn-primary" id="advance-submit">推进</button>
+            </div>
+        </form>
+    </div>
+</script>
+
+<script type="text/html" id="secreDispFlow-seal-form">
+    <div style="padding: 15px;">
+        <form class="layui-form">
+            <div class="layui-form-item">
+                <label class="layui-form-label">情形</label>
+                <div class="layui-input-block">
+                    <select name="cause">
+                        <option value="撤申请">中途撤了申请</option>
+                        <option value="单位并走">所属单位从名录上并走</option>
+                    </select>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">按语</label>
+                <div class="layui-input-block">
+                    <input type="text" name="remark" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item" style="text-align:center;">
+                <button type="button" class="pear-btn pear-btn-primary" id="seal-submit">收尾</button>
+            </div>
+        </form>
+    </div>
+</script>
+
+<th:block th:include="include :: footer"/>
+<script>
+    layui.use(['table', 'form', 'jquery', 'laytpl'], function () {
+        let table = layui.table;
+        let form = layui.form;
+        let $ = layui.jquery;
+        let laytpl = layui.laytpl;
+
+        let MODULE_PATH = rootPath + "/secreDispFlow/";
+        let cols = [
+            [
+                {title: 'ID', field: 'id', align: 'center', hide: true},
+                {title: '流转单号', field: 'bizNo', align: 'left'},
+                {title: '载体件码', field: 'carrierNo', align: 'left'},
+                {title: '名录代号', field: 'bookNo', align: 'center'},
+                {title: '件数', field: 'qty', align: 'center'},
+                {title: '拟密级', field: 'planLevel', align: 'center'},
+                {title: '当前关次', field: 'stage', align: 'center', toolbar: '#secreDispFlow-stage'},
+                {title: '情形', field: 'status', align: 'center', toolbar: '#secreDispFlow-status'},
+                {title: '最近动作', field: 'lastAction', align: 'center'},
+                {title: '化浆凭证', field: 'pulpNo', align: 'center'},
+                {title: '创建时间', field: 'createTime', align: 'left'},
+                {title: '操作', toolbar: '#secreDispFlow-bar', align: 'center', width: 320}
+            ]
+        ]
+
+        //table表单列表
+        table.render({
+            elem: '#secreDispFlow-table',
+            url: MODULE_PATH + 'list',
+            page: true,
+            method: 'get',
+            cols: cols,
+            skin: 'line',
+            toolbar: '#secreDispFlow-toolbar',
+            defaultToolbar: [{
+                layEvent: 'refresh',
+                icon: 'layui-icon-refresh',
+            }, 'filter', 'print', 'exports'],
+            where: {
+                orderByColumn: "id",
+                isAsc: "asc"
+            }
+        });
+
+        //未走完条数：屏上这个数与回库逐档点出来的是同一回算的
+        window.refreshUnfinished = function () {
+            $.get(MODULE_PATH + 'unfinishedCount', function (result) {
+                if (result.code == 200) {
+                    $('#unfinished-badge').text('未走完 ' + result.data + ' 条');
+                }
+            });
+        }
+        window.refreshUnfinished();
+
+        //table图标事件绑定
+        table.on('tool(secreDispFlow-table)', function (obj) {
+            if (obj.event === 'advance') {
+                window.advance(obj);
+            } else if (obj.event === 'rollback') {
+                window.rollback(obj);
+            } else if (obj.event === 'record') {
+                window.record(obj);
+            } else if (obj.event === 'halt') {
+                window.halt(obj);
+            } else if (obj.event === 'annul') {
+                window.annul(obj);
+            } else if (obj.event === 'revoke') {
+                window.revoke(obj);
+            } else if (obj.event === 'seal') {
+                window.seal(obj);
+            } else if (obj.event === 'remove') {
+                window.remove(obj);
+            } else if (obj.event === 'view') {
+                window.view(obj);
+            }
+        });
+
+        //table工具栏绑定
+        table.on('toolbar(secreDispFlow-table)', function (obj) {
+            if (obj.event === 'add') {
+                window.add();
+            } else if (obj.event === 'refresh') {
+                window.refresh();
+            }
+        });
+
+        //查询按钮绑定
+        form.on('submit(secreDispFlow-query)', function (data) {
+            table.reload('secreDispFlow-table', {where: data.field})
+            return false;
+        });
+
+        //提交后统一收尾：提示、刷新台账与未走完条数
+        window.post = function (url, data) {
+            let loading = layer.load();
+            $.ajax({
+                url: url,
+                data: data,
+                dataType: 'json',
+                type: 'post',
+                success: function (result) {
+                    layer.close(loading);
+                    if (result.code == 200) {
+                        layer.msg(result.msg, {icon: 1, time: 1000}, function () {
+                            table.reload('secreDispFlow-table');
+                            window.refreshUnfinished();
+                        });
+                    } else {
+                        layer.msg(result.msg, {icon: 2, time: 2000});
+                    }
+                },
+                error: function () {
+                    layer.close(loading);
+                    layer.msg('这一笔没递进去', {icon: 2, time: 2000});
+                }
+            })
+        }
+
+        //起单
+        window.add = function () {
+            let layIndex = layer.open({
+                type: 1,
+                title: '起单',
+                shade: 0.1,
+                area: ['500px', '520px'],
+                content: $('#secreDispFlow-add-form').html()
+            });
+            $(document).off('click', '#add-submit').on('click', '#add-submit', function () {
+                let data = {
+                    carrierNo: $('.layui-layer input[name="carrierNo"]').val(),
+                    bookNo: $('.layui-layer input[name="bookNo"]').val(),
+                    qty: $('.layui-layer input[name="qty"]').val(),
+                    planLevel: $('.layui-layer input[name="planLevel"]').val(),
+                    remark: $('.layui-layer input[name="remark"]').val()
+                };
+                layer.close(layIndex);
+                window.post(MODULE_PATH + 'add', data);
+            });
+        }
+
+        //推进一档（末一档要两名见证岗与化浆凭证码）
+        window.advance = function (obj) {
+            let layIndex = 0;
+            laytpl($('#secreDispFlow-advance-form').html()).render(obj.data, function (html) {
+                layIndex = layer.open({
+                    type: 1,
+                    title: '推进一档',
+                    shade: 0.1,
+                    area: ['500px', obj.data.stage == 3 ? '480px' : '300px'],
+                    content: html
+                });
+            });
+            $(document).off('click', '#advance-submit').on('click', '#advance-submit', function () {
+                let data = {
+                    id: obj.data.id,
+                    remark: $('.layui-layer input[name="remark"]').val(),
+                    witnessOne: $('.layui-layer input[name="witnessOne"]').val(),
+                    witnessTwo: $('.layui-layer input[name="witnessTwo"]').val(),
+                    pulpNo: $('.layui-layer input[name="pulpNo"]').val()
+                };
+                layer.close(layIndex);
+                window.post(MODULE_PATH + 'advance', data);
+            });
+        }
+
+        //回退一档
+        window.rollback = function (obj) {
+            layer.prompt({title: '回退一档（被收档的按语沉到末位）', formType: 2}, function (value, index) {
+                layer.close(index);
+                window.post(MODULE_PATH + 'rollback', {id: obj.data.id, remark: value});
+            });
+        }
+
+        //记按语
+        window.record = function (obj) {
+            layer.prompt({title: '记按语（落在当前这一档）', formType: 2}, function (value, index) {
+                layer.close(index);
+                window.post(MODULE_PATH + 'record', {id: obj.data.id, note: value});
+            });
+        }
+
+        //叫停
+        window.halt = function (obj) {
+            layer.prompt({title: '叫停（仍占着未走完那一格）', formType: 2}, function (value, index) {
+                layer.close(index);
+                window.post(MODULE_PATH + 'halt', {id: obj.data.id, remark: value});
+            });
+        }
+
+        //作废（只从末一档走）
+        window.annul = function (obj) {
+            layer.confirm('作废只从末一档走，作废即封住。确定作废这条？', {icon: 3, title: '提示'}, function (index) {
+                layer.close(index);
+                window.post(MODULE_PATH + 'annul', {id: obj.data.id, remark: ''});
+            });
+        }
+
+        //撤销（只在头一档起来之前）
+        window.revoke = function (obj) {
+            layer.confirm('撤销只在头一档起来之前那一小段，撤掉的不留进册面。确定撤销？', {icon: 3, title: '提示'}, function (index) {
+                layer.close(index);
+                window.post(MODULE_PATH + 'revoke', {id: obj.data.id});
+            });
+        }
+
+        //收尾（撤申请／单位并走）
+        window.seal = function (obj) {
+            let layIndex = layer.open({
+                type: 1,
+                title: '收尾',
+                shade: 0.1,
+                area: ['500px', '360px'],
+                content: $('#secreDispFlow-seal-form').html()
+            });
+            form.render('select');
+            $(document).off('click', '#seal-submit').on('click', '#seal-submit', function () {
+                let data = {
+                    id: obj.data.id,
+                    cause: $('.layui-layer select[name="cause"]').val(),
+                    remark: $('.layui-layer input[name="remark"]').val()
+                };
+                layer.close(layIndex);
+                window.post(MODULE_PATH + 'seal', data);
+            });
+        }
+
+        //删除（已封住的抽不走）
+        window.remove = function (obj) {
+            layer.confirm('确定要删除这条进度', {icon: 3, title: '提示'}, function (index) {
+                layer.close(index);
+                let loading = layer.load();
+                $.ajax({
+                    url: MODULE_PATH + "remove?id=" + obj.data['id'],
+                    dataType: 'json',
+                    type: 'delete',
+                    success: function (result) {
+                        layer.close(loading);
+                        if (result.code == 200) {
+                            layer.msg(result.msg, {icon: 1, time: 1000}, function () {
+                                obj.del();
+                                window.refreshUnfinished();
+                            });
+                        } else {
+                            layer.msg(result.msg, {icon: 2, time: 2000});
+                        }
+                    }
+                })
+            });
+        }
+
+        //查看层叠（封住的也只读得）
+        window.view = function (obj) {
+            let content = obj.data.content || '（这一行还没落下一层）';
+            layer.open({
+                type: 1,
+                title: '一关一记（从核件起到监销止）',
+                shade: 0.1,
+                area: ['640px', '420px'],
+                content: '<pre style="padding:15px;white-space:pre-wrap;word-break:break-all;">'
+                    + $('<div>').text(content).html() + '</pre>'
+            });
+        }
+
+        //刷新按钮
+        window.refresh = function () {
+            table.reload('secreDispFlow-table');
+            window.refreshUnfinished();
+        }
+    })
+</script>
+</html>

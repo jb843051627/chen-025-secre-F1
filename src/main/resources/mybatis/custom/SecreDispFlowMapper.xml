@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.fc.v2.mapper.custom.SecreDispFlowDao">
+
+    <!-- 挪档与叠层：整段重排落回 + 挪档换情形；哨兵钉死当时那档那情形与底稿长度 -->
+    <update id="rewriteAndTransit">
+        UPDATE t_secre_disp_flow
+        SET content = #{content},
+            stage = #{stage},
+            status = #{status},
+            last_action = #{lastAction},
+            <if test="witnessOne != null">witness_one = #{witnessOne},</if>
+            <if test="witnessTwo != null">witness_two = #{witnessTwo},</if>
+            <if test="pulpNo != null">pulp_no = #{pulpNo},</if>
+            update_by = #{updateBy},
+            update_time = #{updateTime}
+        WHERE id = #{id}
+          AND del_flag = 0
+          AND status = #{expectStatus}
+          AND stage = #{expectStage}
+          AND CHAR_LENGTH(IFNULL(content, '')) = #{expectContentLen}
+    </update>
+
+    <!-- 撤销：只限未起；撤掉的不留进册面，也不占「未走完」那一格 -->
+    <update id="markRevoked">
+        UPDATE t_secre_disp_flow
+        SET del_flag = 1,
+            update_by = #{updateBy},
+            update_time = #{updateTime}
+        WHERE id = #{id}
+          AND del_flag = 0
+          AND status = 0
+    </update>
+
+</mapper>

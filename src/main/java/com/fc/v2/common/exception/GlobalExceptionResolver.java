@@ -2,6 +2,7 @@ package com.fc.v2.common.exception;
 
 import com.fc.v2.common.domain.AjaxResult;
 import com.fc.v2.common.exception.demo.DemoModeException;
+import com.fc.v2.common.exception.secre.SecreFlowException;
 import com.fc.v2.util.ServletUtils;
 import org.apache.shiro.authz.AuthorizationException;
 import org.apache.shiro.authz.UnauthenticatedException;
@@ -107,6 +108,15 @@ public class GlobalExceptionResolver{
     public AjaxResult demoModeException(DemoModeException e)
     {
         return AjaxResult.error("演示模式，不允许操作");
+    }
+
+    /**
+     * 载体处置流转违规：原话回给值班岗（缺哪一样、哪道闸门没开、已封住……）
+     */
+    @ExceptionHandler(SecreFlowException.class)
+    public AjaxResult secreFlowException(SecreFlowException e)
+    {
+        return AjaxResult.error(e.getMessage());
     }
     
     /**
